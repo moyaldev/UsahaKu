@@ -1,0 +1,236 @@
+{
+  "entities": {
+    "BusinessProfile": {
+      "title": "BusinessProfile",
+      "description": "Profil usaha dan pemilik akun UsahaKu",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "namaUsaha": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "taglineUsaha": { "type": "string", "maxLength": 200 },
+        "kategoriUsaha": { "type": "string", "maxLength": 80 },
+        "alamat": { "type": "string", "maxLength": 240 },
+        "telepon": { "type": "string", "maxLength": 40 },
+        "namaPemilik": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "emailPemilik": { "type": "string", "maxLength": 120 },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "mataUang": { "type": "string", "enum": ["IDR"], "maxLength": 3 },
+        "batasStokMenipisDefault": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "namaUsaha", "namaPemilik", "mataUang", "batasStokMenipisDefault", "createdAt", "updatedAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Produk katalog dan stok barang",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "sku": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "nama": { "type": "string", "minLength": 1, "maxLength": 150 },
+        "kategori": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "hargaModal": { "type": "number" },
+        "hargaJual": { "type": "number" },
+        "stok": { "type": "number" },
+        "stokMinimum": { "type": "number" },
+        "satuan": { "type": "string", "minLength": 1, "maxLength": 30 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "sku", "nama", "kategori", "hargaModal", "hargaJual", "stok", "stokMinimum", "satuan", "createdAt", "updatedAt"]
+    },
+    "StockHistory": {
+      "title": "StockHistory",
+      "description": "Catatan riwayat keluar-masuk dan penyesuaian stok",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "productId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "productName": { "type": "string", "minLength": 1, "maxLength": 150 },
+        "tipe": { "type": "string", "enum": ["masuk", "keluar", "penyesuaian", "retur_batal"] },
+        "jumlah": { "type": "number" },
+        "stokSebelum": { "type": "number" },
+        "stokSesudah": { "type": "number" },
+        "referensi": { "type": "string", "maxLength": 100 },
+        "catatan": { "type": "string", "maxLength": 300 },
+        "tanggal": { "type": "string", "maxLength": 40 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "productId", "productName", "tipe", "jumlah", "stokSebelum", "stokSesudah", "referensi", "catatan", "tanggal", "createdAt"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Transaksi penjualan produk",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "nomorInvoice": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "tanggal": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "items": { "type": "array" },
+        "totalHarga": { "type": "number" },
+        "totalModal": { "type": "number" },
+        "totalKeuntungan": { "type": "number" },
+        "metodePembayaran": { "type": "string", "enum": ["Tunai", "QRIS", "Transfer Bank", "E-Wallet", "Utang / Kasbon"] },
+        "status": { "type": "string", "enum": ["selesai", "dibatalkan"] },
+        "catatan": { "type": "string", "maxLength": 300 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "nomorInvoice", "tanggal", "customerName", "items", "totalHarga", "totalModal", "totalKeuntungan", "metodePembayaran", "status", "catatan", "createdAt", "updatedAt"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Data pelanggan dan catatan piutang",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "nama": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "kontak": { "type": "string", "maxLength": 40 },
+        "alamat": { "type": "string", "maxLength": 240 },
+        "catatan": { "type": "string", "maxLength": 300 },
+        "totalPembelian": { "type": "number" },
+        "jumlahTransaksi": { "type": "number" },
+        "totalUtang": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "nama", "kontak", "alamat", "catatan", "totalPembelian", "jumlahTransaksi", "totalUtang", "createdAt", "updatedAt"]
+    },
+    "DebtRecord": {
+      "title": "DebtRecord",
+      "description": "Riwayat kasbon dan pembayaran utang pelanggan",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "customerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "customerName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "tipe": { "type": "string", "enum": ["tambah_utang", "bayar_utang"] },
+        "jumlah": { "type": "number" },
+        "metode": { "type": "string", "maxLength": 60 },
+        "catatan": { "type": "string", "maxLength": 300 },
+        "tanggal": { "type": "string", "maxLength": 40 },
+        "saleId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "customerId", "customerName", "tipe", "jumlah", "metode", "catatan", "tanggal", "createdAt"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Data pemasok barang usaha",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "nama": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "kontak": { "type": "string", "maxLength": 40 },
+        "alamat": { "type": "string", "maxLength": 240 },
+        "produkDisediakan": { "type": "array" },
+        "catatan": { "type": "string", "maxLength": 300 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "nama", "kontak", "alamat", "produkDisediakan", "catatan", "createdAt", "updatedAt"]
+    },
+    "Purchase": {
+      "title": "Purchase",
+      "description": "Transaksi pembelian stok dari pemasok",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "nomorPO": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "tanggal": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "supplierId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "supplierName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "items": { "type": "array" },
+        "totalBiaya": { "type": "number" },
+        "metodePembayaran": { "type": "string", "maxLength": 60 },
+        "catatan": { "type": "string", "maxLength": 300 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "nomorPO", "tanggal", "supplierId", "supplierName", "items", "totalBiaya", "metodePembayaran", "catatan", "createdAt"]
+    },
+    "FinanceEntry": {
+      "title": "FinanceEntry",
+      "description": "Catatan arus kas pemasukan dan pengeluaran",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "tanggal": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "tipe": { "type": "string", "enum": ["pemasukan", "pengeluaran"] },
+        "kategori": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "deskripsi": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "jumlah": { "type": "number" },
+        "metode": { "type": "string", "maxLength": 60 },
+        "referensiId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "tanggal", "tipe", "kategori", "deskripsi", "jumlah", "metode", "createdAt"]
+    },
+    "OrderAgenda": {
+      "title": "OrderAgenda",
+      "description": "Pesanan pelanggan dan agenda pengingat usaha",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "judul": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "kontak": { "type": "string", "maxLength": 40 },
+        "produkRingkasan": { "type": "string", "maxLength": 240 },
+        "estimasiNilai": { "type": "number" },
+        "status": { "type": "string", "enum": ["menunggu", "diproses", "selesai", "dibatalkan"] },
+        "tanggalPesan": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "tenggatWaktu": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "catatan": { "type": "string", "maxLength": 300 },
+        "tipe": { "type": "string", "enum": ["pesanan", "pengingat"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "judul", "customerName", "kontak", "produkRingkasan", "estimasiNilai", "status", "tanggalPesan", "tenggatWaktu", "catatan", "tipe", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/profile/{docId}": {
+      "schema": { "$ref": "#/entities/BusinessProfile" },
+      "description": "Profil usaha & pemilik per akun pengguna"
+    },
+    "/users/{userId}/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Katalog produk dan stok per pengguna"
+    },
+    "/users/{userId}/stockHistory/{historyId}": {
+      "schema": { "$ref": "#/entities/StockHistory" },
+      "description": "Riwayat pergerakan stok barang per pengguna"
+    },
+    "/users/{userId}/sales/{saleId}": {
+      "schema": { "$ref": "#/entities/Sale" },
+      "description": "Riwayat transaksi penjualan per pengguna"
+    },
+    "/users/{userId}/customers/{customerId}": {
+      "schema": { "$ref": "#/entities/Customer" },
+      "description": "Daftar pelanggan dan utang per pengguna"
+    },
+    "/users/{userId}/debtRecords/{recordId}": {
+      "schema": { "$ref": "#/entities/DebtRecord" },
+      "description": "Riwayat kasbon dan pembayaran utang per pengguna"
+    },
+    "/users/{userId}/suppliers/{supplierId}": {
+      "schema": { "$ref": "#/entities/Supplier" },
+      "description": "Daftar pemasok per pengguna"
+    },
+    "/users/{userId}/purchases/{purchaseId}": {
+      "schema": { "$ref": "#/entities/Purchase" },
+      "description": "Riwayat pembelian stok dari pemasok per pengguna"
+    },
+    "/users/{userId}/finance/{entryId}": {
+      "schema": { "$ref": "#/entities/FinanceEntry" },
+      "description": "Catatan arus kas pemasukan dan pengeluaran per pengguna"
+    },
+    "/users/{userId}/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/OrderAgenda" },
+      "description": "Pesanan pelanggan dan agenda usaha per pengguna"
+    }
+  }
+}

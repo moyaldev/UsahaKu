@@ -1,0 +1,433 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && isValidId(userId)
+        && request.auth.uid == userId;
+    }
+
+    // 3. Validation Blueprints
+    function isValidBusinessProfile(data) {
+      return data.keys().hasAll([
+          'ownerId', 'namaUsaha', 'taglineUsaha', 'kategoriUsaha',
+          'alamat', 'telepon', 'namaPemilik', 'emailPemilik',
+          'avatarUrl', 'mataUang', 'batasStokMenipisDefault', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'namaUsaha', 'taglineUsaha', 'kategoriUsaha',
+          'alamat', 'telepon', 'namaPemilik', 'emailPemilik',
+          'avatarUrl', 'mataUang', 'batasStokMenipisDefault', 'createdAt', 'updatedAt'
+        ])
+        && data.ownerId == request.auth.uid
+        && data.namaUsaha is string && data.namaUsaha.size() >= 1 && data.namaUsaha.size() <= 120
+        && data.taglineUsaha is string && data.taglineUsaha.size() <= 200
+        && data.kategoriUsaha is string && data.kategoriUsaha.size() <= 80
+        && data.alamat is string && data.alamat.size() <= 240
+        && data.telepon is string && data.telepon.size() <= 40
+        && data.namaPemilik is string && data.namaPemilik.size() >= 1 && data.namaPemilik.size() <= 100
+        && data.emailPemilik is string && data.emailPemilik.size() <= 120
+        && data.avatarUrl is string && data.avatarUrl.size() <= 500
+        && data.mataUang == 'IDR'
+        && data.batasStokMenipisDefault is number && data.batasStokMenipisDefault >= 0 && data.batasStokMenipisDefault <= 10000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll([
+          'ownerId', 'sku', 'nama', 'kategori', 'hargaModal',
+          'hargaJual', 'stok', 'stokMinimum', 'satuan', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'sku', 'nama', 'kategori', 'hargaModal',
+          'hargaJual', 'stok', 'stokMinimum', 'satuan', 'createdAt', 'updatedAt'
+        ])
+        && data.ownerId == request.auth.uid
+        && data.sku is string && data.sku.size() >= 1 && data.sku.size() <= 60
+        && data.nama is string && data.nama.size() >= 1 && data.nama.size() <= 150
+        && data.kategori is string && data.kategori.size() >= 1 && data.kategori.size() <= 80
+        && data.hargaModal is number && data.hargaModal >= 0
+        && data.hargaJual is number && data.hargaJual >= 0
+        && data.stok is number && data.stok >= 0
+        && data.stokMinimum is number && data.stokMinimum >= 0
+        && data.satuan is string && data.satuan.size() >= 1 && data.satuan.size() <= 30
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidStockHistory(data) {
+      return data.keys().hasAll([
+          'ownerId', 'productId', 'productName', 'tipe', 'jumlah',
+          'stokSebelum', 'stokSesudah', 'referensi', 'catatan', 'tanggal', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'productId', 'productName', 'tipe', 'jumlah',
+          'stokSebelum', 'stokSesudah', 'referensi', 'catatan', 'tanggal', 'createdAt'
+        ])
+        && data.ownerId == request.auth.uid
+        && isValidId(data.productId)
+        && data.productName is string && data.productName.size() >= 1 && data.productName.size() <= 150
+        && data.tipe in ['masuk', 'keluar', 'penyesuaian', 'retur_batal']
+        && data.jumlah is number && data.jumlah >= 0
+        && data.stokSebelum is number && data.stokSebelum >= 0
+        && data.stokSesudah is number && data.stokSesudah >= 0
+        && data.referensi is string && data.referensi.size() <= 100
+        && data.catatan is string && data.catatan.size() <= 300
+        && data.tanggal is string && data.tanggal.size() >= 1 && data.tanggal.size() <= 40
+        && data.createdAt is timestamp;
+    }
+
+    function isValidSale(data) {
+      return data.keys().hasAll([
+          'ownerId', 'nomorInvoice', 'tanggal', 'customerId', 'customerName',
+          'items', 'totalHarga', 'totalModal', 'totalKeuntungan',
+          'metodePembayaran', 'status', 'catatan', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'nomorInvoice', 'tanggal', 'customerId', 'customerName',
+          'items', 'totalHarga', 'totalModal', 'totalKeuntungan',
+          'metodePembayaran', 'status', 'catatan', 'createdAt', 'updatedAt'
+        ])
+        && data.ownerId == request.auth.uid
+        && data.nomorInvoice is string && data.nomorInvoice.size() >= 1 && data.nomorInvoice.size() <= 60
+        && data.tanggal is string && data.tanggal.size() >= 1 && data.tanggal.size() <= 40
+        && data.customerId is string && data.customerId.size() <= 128
+        && data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 120
+        && data.items is list && data.items.size() >= 1 && data.items.size() <= 50
+        && data.items[0] is map
+        && data.totalHarga is number && data.totalHarga >= 0
+        && data.totalModal is number && data.totalModal >= 0
+        && data.totalKeuntungan is number
+        && data.metodePembayaran in ['Tunai', 'QRIS', 'Transfer Bank', 'E-Wallet', 'Utang / Kasbon']
+        && data.status in ['selesai', 'dibatalkan']
+        && data.catatan is string && data.catatan.size() <= 300
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCustomer(data) {
+      return data.keys().hasAll([
+          'ownerId', 'nama', 'kontak', 'alamat', 'catatan',
+          'totalPembelian', 'jumlahTransaksi', 'totalUtang', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'nama', 'kontak', 'alamat', 'catatan',
+          'totalPembelian', 'jumlahTransaksi', 'totalUtang', 'createdAt', 'updatedAt'
+        ])
+        && data.ownerId == request.auth.uid
+        && data.nama is string && data.nama.size() >= 1 && data.nama.size() <= 120
+        && data.kontak is string && data.kontak.size() <= 40
+        && data.alamat is string && data.alamat.size() <= 240
+        && data.catatan is string && data.catatan.size() <= 300
+        && data.totalPembelian is number && data.totalPembelian >= 0
+        && data.jumlahTransaksi is number && data.jumlahTransaksi >= 0
+        && data.totalUtang is number && data.totalUtang >= 0
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidDebtRecord(data) {
+      return data.keys().hasAll([
+          'ownerId', 'customerId', 'customerName', 'tipe', 'jumlah',
+          'metode', 'catatan', 'tanggal', 'saleId', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'customerId', 'customerName', 'tipe', 'jumlah',
+          'metode', 'catatan', 'tanggal', 'saleId', 'createdAt'
+        ])
+        && data.ownerId == request.auth.uid
+        && isValidId(data.customerId)
+        && data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 120
+        && data.tipe in ['tambah_utang', 'bayar_utang']
+        && data.jumlah is number && data.jumlah > 0
+        && data.metode is string && data.metode.size() <= 60
+        && data.catatan is string && data.catatan.size() <= 300
+        && data.tanggal is string && data.tanggal.size() >= 1 && data.tanggal.size() <= 40
+        && data.saleId is string && data.saleId.size() <= 128
+        && data.createdAt is timestamp;
+    }
+
+    function isValidSupplier(data) {
+      return data.keys().hasAll([
+          'ownerId', 'nama', 'kontak', 'alamat', 'produkDisediakan',
+          'catatan', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'nama', 'kontak', 'alamat', 'produkDisediakan',
+          'catatan', 'createdAt', 'updatedAt'
+        ])
+        && data.ownerId == request.auth.uid
+        && data.nama is string && data.nama.size() >= 1 && data.nama.size() <= 120
+        && data.kontak is string && data.kontak.size() <= 40
+        && data.alamat is string && data.alamat.size() <= 240
+        && data.produkDisediakan is list && data.produkDisediakan.size() <= 50
+        && (data.produkDisediakan.size() == 0 || data.produkDisediakan[0] is string)
+        && data.catatan is string && data.catatan.size() <= 300
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPurchase(data) {
+      return data.keys().hasAll([
+          'ownerId', 'nomorPO', 'tanggal', 'supplierId', 'supplierName',
+          'items', 'totalBiaya', 'metodePembayaran', 'catatan', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'nomorPO', 'tanggal', 'supplierId', 'supplierName',
+          'items', 'totalBiaya', 'metodePembayaran', 'catatan', 'createdAt'
+        ])
+        && data.ownerId == request.auth.uid
+        && data.nomorPO is string && data.nomorPO.size() >= 1 && data.nomorPO.size() <= 60
+        && data.tanggal is string && data.tanggal.size() >= 1 && data.tanggal.size() <= 40
+        && isValidId(data.supplierId)
+        && data.supplierName is string && data.supplierName.size() >= 1 && data.supplierName.size() <= 120
+        && data.items is list && data.items.size() >= 1 && data.items.size() <= 50
+        && data.items[0] is map
+        && data.totalBiaya is number && data.totalBiaya >= 0
+        && data.metodePembayaran is string && data.metodePembayaran.size() <= 60
+        && data.catatan is string && data.catatan.size() <= 300
+        && data.createdAt is timestamp;
+    }
+
+    function isValidFinanceEntry(data) {
+      return data.keys().hasAll([
+          'ownerId', 'tanggal', 'tipe', 'kategori', 'deskripsi',
+          'jumlah', 'metode', 'referensiId', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'tanggal', 'tipe', 'kategori', 'deskripsi',
+          'jumlah', 'metode', 'referensiId', 'createdAt'
+        ])
+        && data.ownerId == request.auth.uid
+        && data.tanggal is string && data.tanggal.size() >= 1 && data.tanggal.size() <= 40
+        && data.tipe in ['pemasukan', 'pengeluaran']
+        && data.kategori is string && data.kategori.size() >= 1 && data.kategori.size() <= 80
+        && data.deskripsi is string && data.deskripsi.size() >= 1 && data.deskripsi.size() <= 300
+        && data.jumlah is number && data.jumlah > 0
+        && data.metode is string && data.metode.size() <= 60
+        && data.referensiId is string && data.referensiId.size() <= 128
+        && data.createdAt is timestamp;
+    }
+
+    function isValidOrderAgenda(data) {
+      return data.keys().hasAll([
+          'ownerId', 'judul', 'customerId', 'customerName', 'kontak',
+          'produkRingkasan', 'estimasiNilai', 'status', 'tanggalPesan',
+          'tenggatWaktu', 'catatan', 'tipe', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'judul', 'customerId', 'customerName', 'kontak',
+          'produkRingkasan', 'estimasiNilai', 'status', 'tanggalPesan',
+          'tenggatWaktu', 'catatan', 'tipe', 'createdAt', 'updatedAt'
+        ])
+        && data.ownerId == request.auth.uid
+        && data.judul is string && data.judul.size() >= 1 && data.judul.size() <= 160
+        && data.customerId is string && data.customerId.size() <= 128
+        && data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 120
+        && data.kontak is string && data.kontak.size() <= 40
+        && data.produkRingkasan is string && data.produkRingkasan.size() <= 240
+        && data.estimasiNilai is number && data.estimasiNilai >= 0
+        && data.status in ['menunggu', 'diproses', 'selesai', 'dibatalkan']
+        && data.tanggalPesan is string && data.tanggalPesan.size() >= 1 && data.tanggalPesan.size() <= 40
+        && data.tenggatWaktu is string && data.tenggatWaktu.size() >= 1 && data.tenggatWaktu.size() <= 40
+        && data.catatan is string && data.catatan.size() <= 300
+        && data.tipe in ['pesanan', 'pengingat']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // 4. User-Scoped Subcollections
+    match /users/{userId} {
+      allow read, write: if false;
+
+      match /profile/{docId} {
+        allow get: if isVerifiedOwner(userId) && isValidId(docId);
+        allow list: if false;
+        allow create: if isVerifiedOwner(userId) && docId == 'business'
+          && isValidBusinessProfile(incoming())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isVerifiedOwner(userId) && docId == 'business'
+          && isValidBusinessProfile(incoming())
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'namaUsaha', 'taglineUsaha', 'kategoriUsaha', 'alamat', 'telepon',
+            'namaPemilik', 'emailPemilik', 'avatarUrl', 'batasStokMenipisDefault', 'updatedAt'
+          ]);
+        allow delete: if false;
+      }
+
+      match /products/{productId} {
+        allow get: if isVerifiedOwner(userId) && isValidId(productId);
+        allow list: if isVerifiedOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isVerifiedOwner(userId) && isValidId(productId)
+          && isValidProduct(incoming())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isVerifiedOwner(userId) && isValidId(productId)
+          && isValidProduct(incoming())
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'sku', 'nama', 'kategori', 'hargaModal', 'hargaJual', 'stok', 'stokMinimum', 'satuan', 'updatedAt'
+            ])
+            || incoming().diff(existing()).affectedKeys().hasOnly(['stok', 'updatedAt'])
+            || incoming().diff(existing()).affectedKeys().hasOnly(['stok', 'hargaModal', 'updatedAt'])
+          );
+        allow delete: if isVerifiedOwner(userId) && isValidId(productId);
+      }
+
+      match /stockHistory/{historyId} {
+        allow get: if isVerifiedOwner(userId) && isValidId(historyId);
+        allow list: if isVerifiedOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isVerifiedOwner(userId) && isValidId(historyId)
+          && isValidStockHistory(incoming())
+          && incoming().createdAt == request.time
+          && existsAfter(/databases/$(database)/documents/users/$(userId)/products/$(incoming().productId));
+        allow update: if false;
+        allow delete: if isVerifiedOwner(userId) && isValidId(historyId);
+      }
+
+      match /sales/{saleId} {
+        allow get: if isVerifiedOwner(userId) && isValidId(saleId);
+        allow list: if isVerifiedOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isVerifiedOwner(userId) && isValidId(saleId)
+          && isValidSale(incoming())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && (incoming().customerId == '' || existsAfter(/databases/$(database)/documents/users/$(userId)/customers/$(incoming().customerId)));
+        allow update: if isVerifiedOwner(userId) && isValidId(saleId)
+          && isValidSale(incoming())
+          && existing().status == 'selesai'
+          && incoming().status == 'dibatalkan'
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+        allow delete: if isVerifiedOwner(userId) && isValidId(saleId);
+      }
+
+      match /customers/{customerId} {
+        allow get: if isVerifiedOwner(userId) && isValidId(customerId);
+        allow list: if isVerifiedOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isVerifiedOwner(userId) && isValidId(customerId)
+          && isValidCustomer(incoming())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isVerifiedOwner(userId) && isValidId(customerId)
+          && isValidCustomer(incoming())
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['nama', 'kontak', 'alamat', 'catatan', 'updatedAt'])
+            || incoming().diff(existing()).affectedKeys().hasOnly(['totalPembelian', 'jumlahTransaksi', 'totalUtang', 'updatedAt'])
+            || incoming().diff(existing()).affectedKeys().hasOnly(['totalUtang', 'updatedAt'])
+          );
+        allow delete: if isVerifiedOwner(userId) && isValidId(customerId);
+      }
+
+      match /debtRecords/{recordId} {
+        allow get: if isVerifiedOwner(userId) && isValidId(recordId);
+        allow list: if isVerifiedOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isVerifiedOwner(userId) && isValidId(recordId)
+          && isValidDebtRecord(incoming())
+          && incoming().createdAt == request.time
+          && existsAfter(/databases/$(database)/documents/users/$(userId)/customers/$(incoming().customerId));
+        allow update: if false;
+        allow delete: if isVerifiedOwner(userId) && isValidId(recordId);
+      }
+
+      match /suppliers/{supplierId} {
+        allow get: if isVerifiedOwner(userId) && isValidId(supplierId);
+        allow list: if isVerifiedOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isVerifiedOwner(userId) && isValidId(supplierId)
+          && isValidSupplier(incoming())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isVerifiedOwner(userId) && isValidId(supplierId)
+          && isValidSupplier(incoming())
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'nama', 'kontak', 'alamat', 'produkDisediakan', 'catatan', 'updatedAt'
+          ]);
+        allow delete: if isVerifiedOwner(userId) && isValidId(supplierId);
+      }
+
+      match /purchases/{purchaseId} {
+        allow get: if isVerifiedOwner(userId) && isValidId(purchaseId);
+        allow list: if isVerifiedOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isVerifiedOwner(userId) && isValidId(purchaseId)
+          && isValidPurchase(incoming())
+          && incoming().createdAt == request.time
+          && existsAfter(/databases/$(database)/documents/users/$(userId)/suppliers/$(incoming().supplierId));
+        allow update: if false;
+        allow delete: if isVerifiedOwner(userId) && isValidId(purchaseId);
+      }
+
+      match /finance/{entryId} {
+        allow get: if isVerifiedOwner(userId) && isValidId(entryId);
+        allow list: if isVerifiedOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isVerifiedOwner(userId) && isValidId(entryId)
+          && isValidFinanceEntry(incoming())
+          && incoming().createdAt == request.time;
+        allow update: if false;
+        allow delete: if isVerifiedOwner(userId) && isValidId(entryId);
+      }
+
+      match /orders/{orderId} {
+        allow get: if isVerifiedOwner(userId) && isValidId(orderId);
+        allow list: if isVerifiedOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isVerifiedOwner(userId) && isValidId(orderId)
+          && isValidOrderAgenda(incoming())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && (incoming().customerId == '' || existsAfter(/databases/$(database)/documents/users/$(userId)/customers/$(incoming().customerId)));
+        allow update: if isVerifiedOwner(userId) && isValidId(orderId)
+          && isValidOrderAgenda(incoming())
+          && existing().status != 'dibatalkan'
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'judul', 'customerId', 'customerName', 'kontak', 'produkRingkasan',
+              'estimasiNilai', 'status', 'tanggalPesan', 'tenggatWaktu', 'catatan', 'tipe', 'updatedAt'
+            ])
+            || incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+          );
+        allow delete: if isVerifiedOwner(userId) && isValidId(orderId);
+      }
+    }
+  }
+}
